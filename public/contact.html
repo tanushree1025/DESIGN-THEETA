@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact Us — The Design Theeta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brand-purple: #6E44FF;
+  --brand-orange: #FF7A00;
+  --text: #EDEDED;
+  --muted: #B8B8B8;
+  --bg: #0B0B0F;
+  --section-bg: #121217;
+}
+* { box-sizing: border-box; margin:0; padding:0; }
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height:1.6; }
+header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding: 20px 50px; background: var(--bg); position:sticky; top:0; z-index:1000;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+header img { height: 60px; }
+nav a { color: var(--text); text-decoration:none; margin-left:25px; font-weight:600; transition:0.3s; }
+nav a:hover { color: var(--brand-orange); }
+
+main { padding: 80px 20px; max-width: 800px; margin:0 auto; text-align:center; }
+h1 { font-size: clamp(28px,4vw,42px); margin-bottom:40px; font-weight:800; }
+.contact-info { display:flex; flex-direction:column; align-items:center; gap:20px; }
+.contact-info p { font-size:20px; color: var(--muted); }
+.contact-info a { color: var(--brand-orange); text-decoration:none; font-weight:600; transition:0.3s; }
+.contact-info a:hover { text-decoration:underline; }
+
+footer { background: var(--bg); padding:30px 50px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; border-top:1px solid rgba(255,255,255,0.1); }
+footer p { color: var(--muted); font-size:14px; }
+footer .socials a { margin-left:15px; color: var(--text); text-decoration:none; font-weight:600; transition:.3s; }
+footer .socials a:hover { color: var(--brand-orange); }
+
+@media(max-width:600px){ header { padding:20px; } footer { flex-direction:column; gap:20px; } }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="logo2.jpg" alt="The Design Theeta Logo">
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="login.html">Login</a>
+    <a href="signup.html">Sign Up</a>
+  </nav>
+</header>
+
+<main>
+  <h1>Contact Us</h1>
+  
+  <div class="contact-info">
+    <p>Email: <a href="mailto:thedesigntheeta@gmail.com">thedesigntheeta@gmail.com</a></p>
+    <p>Phone: <a href="tel:+918217431563">+91 8217431563</a></p>
+  </div>
+</main>
+
+<footer>
+  <p>&copy; 2025 The Design Theeta</p>
+  <div class="socials">
+    <a href="https://www.instagram.com/designtheeta?igsh=MXg5Y3EyczhmNGk0cg==" target="_blank">Instagram</a>
+    <a href="mailto:thedesigntheeta@gmail.com">Email Us</a>
+  </div>
+</footer>
+
+</body>
+</html>

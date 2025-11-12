@@ -1,0 +1,197 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Dashboard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap">
+<style>
+:root{--bg:#0b0b0f;--card:#111;--accent:#6E44FF;--accent2:#FF7A00;--muted:#aaa}
+body{margin:0;background:var(--bg);color:#fff;font-family:Inter,Arial}
+.header{background:linear-gradient(90deg,var(--accent),var(--accent2));padding:14px;text-align:center;font-weight:700}
+.container{display:flex;height:calc(100vh - 56px)}
+.sidebar{width:280px;background:#0f0f12;padding:12px;border-right:1px solid #222;overflow:auto}
+.chat{flex:1;display:flex;flex-direction:column}
+.chat-area{flex:1;overflow:auto;padding:18px;background:#0c0c0e}
+.bubble{max-width:70%;padding:10px;border-radius:12px;margin:8px 0;display:inline-block}
+.me{margin-left:auto;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#000}
+.other{background:#1f1f1f;color:#fff}
+.small{font-size:12px;color:var(--muted);margin-top:6px}
+.controls{display:flex;gap:8px;padding:12px;border-top:1px solid #222;background:#0f0f12;align-items:center}
+.controls input[type="text"]{flex:1;padding:10px;border-radius:20px;border:none;background:#111;color:#fff}
+.controls button{padding:10px 12px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
+.user{padding:8px;border-radius:8px;margin:6px 0;cursor:pointer;background:#0c0c0c}
+.preview-img{max-width:160px;border-radius:8px;display:block;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="header">Admin Dashboard</div>
+<div class="container">
+  <div class="sidebar">
+    <h4>Online Employees</h4>
+    <div id="users"></div>
+    <hr>
+    <button id="logout">Logout</button>
+  </div>
+  <div class="chat">
+    <div id="chatArea" class="chat-area"></div>
+    <div class="controls">
+      <input id="msgInput" type="text" placeholder="Type a message...">
+      <input type="file" id="fileInput" style="display:none" accept="*/*">
+      <button id="attach">📎</button>
+      <button id="recordBtn">🎤</button>
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const token = localStorage.getItem('token');
+const role = localStorage.getItem('role');
+const name = localStorage.getItem('name');
+if(!token) { location='/login.html'; }
+
+const socket = io('/', { auth: { token } });
+
+const usersDiv = document.getElementById('users');
+const chatArea = document.getElementById('chatArea');
+const msgInput = document.getElementById('msgInput');
+const attachBtn = document.getElementById('attach');
+const fileInput = document.getElementById('fileInput');
+const sendBtn = document.getElementById('sendBtn');
+const recordBtn = document.getElementById('recordBtn');
+const logoutBtn = document.getElementById('logout');
+
+// Set to track already rendered messages
+const renderedMessages = new Set();
+
+logoutBtn.addEventListener('click', ()=>{ localStorage.clear(); location='/login.html'; });
+
+socket.on('connect_error', err => { 
+  console.error(err); 
+  if(err.message && err.message.includes('Authentication')){ 
+    alert('Session expired'); 
+    localStorage.clear(); 
+    location='/login.html'; 
+  } 
+});
+
+socket.on('onlineUsers', users => { 
+  usersDiv.innerHTML='';
+  users.forEach(u=>{
+    const d=document.createElement('div');
+    d.className='user';
+    d.textContent = u.name + ' ('+u.role+') — ' + u.id;
+    d.onclick=()=>{ msgInput.dataset.receiver = u.id; msgInput.focus(); };
+    usersDiv.appendChild(d);
+  });
+});
+
+socket.on('previousMessages', msgs => { 
+  chatArea.innerHTML=''; 
+  msgs.forEach(m=> renderMessage(m)); 
+});
+
+socket.on('chatMessage', m => { renderMessage(m); });
+
+function renderMessage(m){
+  // Use _id or timestamp+sender as unique identifier
+  const msgId = m._id || (m.timestamp + (m.sender?.id || 'unknown'));
+  if(renderedMessages.has(msgId)) return; // skip duplicates
+  renderedMessages.add(msgId);
+
+  const isMe = m.sender && (localStorage.getItem('userId') == (m.sender.id || m.sender));
+  const div = document.createElement('div');
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble ' + (isMe ? 'me' : 'other');
+
+  const meta = document.createElement('div');
+  meta.className = 'small';
+  const senderName = m.sender ? m.sender.name : 'Unknown';
+  const time = new Date(m.timestamp || Date.now()).toLocaleString();
+  meta.textContent = `${senderName} • ${time}`;
+
+  if(m.type === 'audio'){
+    const audio = document.createElement('audio'); 
+    audio.controls = true; 
+    audio.src = m.fileUrl; 
+    bubble.appendChild(audio);
+    bubble.appendChild(meta);
+  } else if(m.type === 'file'){
+    if(m.fileUrl.match(/\.(jpeg|jpg|png|gif)$/i)){
+      const img = document.createElement('img'); 
+      img.src = m.fileUrl; 
+      img.className='preview-img'; 
+      bubble.appendChild(img);
+      const a = document.createElement('a'); 
+      a.href = m.fileUrl; 
+      a.target='_blank'; 
+      a.textContent = 'Open file';
+      bubble.appendChild(a);
+      bubble.appendChild(meta);
+    } else {
+      const a = document.createElement('a'); 
+      a.href = m.fileUrl; 
+      a.target='_blank'; 
+      a.textContent = 'Download file';
+      bubble.appendChild(a);
+      bubble.appendChild(meta);
+    }
+  } else {
+    bubble.textContent = m.message;
+    bubble.appendChild(meta);
+  }
+
+  div.appendChild(bubble);
+  chatArea.appendChild(div);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+// send text (only emit, don't render locally)
+sendBtn.addEventListener('click', ()=>{
+  const txt = msgInput.value.trim(); if(!txt) return;
+  const receiver = msgInput.dataset.receiver || null;
+  socket.emit('chatMessage', { receiver, message: txt, type: 'text', timestamp: Date.now() });
+  msgInput.value=''; 
+  delete msgInput.dataset.receiver;
+});
+
+attachBtn.addEventListener('click', ()=> fileInput.click());
+fileInput.addEventListener('change', async ()=> {
+  const f = fileInput.files[0]; if(!f) return;
+  const fd = new FormData(); fd.append('file', f);
+  const res = await fetch('/api/upload', { method: 'POST', body: fd });
+  const data = await res.json();
+  if(data.fileUrl){ 
+    const receiver = msgInput.dataset.receiver || null; 
+    socket.emit('chatMessage', { receiver, fileUrl: data.fileUrl, type: f.type.startsWith('audio') ? 'audio' : 'file', timestamp: Date.now() });
+  } else alert('Upload failed');
+});
+
+// voice recording webm
+let mediaRecorder; let audioChunks = [];
+recordBtn.addEventListener('click', async ()=>{
+  if(recordBtn.dataset.rec === '1'){
+    mediaRecorder.stop(); recordBtn.dataset.rec = '0'; recordBtn.textContent = '🎤';
+  } else {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+    mediaRecorder.onstop = async ()=> {
+      const blob = new Blob(audioChunks, { type: 'audio/webm' });
+      const fd = new FormData(); fd.append('file', blob, 'voice.webm');
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if(data.fileUrl){ 
+        const receiver = msgInput.dataset.receiver || null; 
+        socket.emit('chatMessage', { receiver, fileUrl: data.fileUrl, type: 'audio', timestamp: Date.now() });
+      } else alert('Upload failed');
+    };
+    mediaRecorder.start(); recordBtn.dataset.rec = '1'; recordBtn.textContent = 'Stop';
+  }
+});
+</script>
+</body>
+</html>
